@@ -29,16 +29,17 @@ start_branch_propability = 0.2
 branch_prop_k = 0.8
 
 
-def generate_tree(context, stem_mat, leave_mat, initial_radius, depth):
+def generate_tree(context, stem_mat=None, leaf_mat=None, initial_radius=1.0, depth=10,
+                  leaf_size=0.5, leaf_size_deviation=20.0):
     mesh = bpy.data.meshes.new("Stem")
     mesh.vertices.add(1)
-    obj = object_utils.object_data_add(context, mesh, operator=None)
+    stem_obj = object_utils.object_data_add(context, mesh, operator=None)
     bpy.ops.object.mode_set(mode="EDIT")
     bpy.ops.mesh.select_all(action='DESELECT')
     bpy.ops.object.mode_set(mode="OBJECT")
     bpy.ops.object.mode_set(mode="EDIT")
 
-    bm = bmesh.from_edit_mesh(obj.data)
+    bm = bmesh.from_edit_mesh(stem_obj.data)
     bm.verts.ensure_lookup_table()
     root_vert = bm.verts[0]
 
@@ -50,20 +51,27 @@ def generate_tree(context, stem_mat, leave_mat, initial_radius, depth):
 
     # Saving vert coordinates
     outer_coordinates = [Vector(v.co) for v in outer_verts]
-
+    index_coordinates_map = [(v.index, Vector(v.co)) for v in outer_verts]
     # Applying radii
     index_radius_maps = [(v.index, r) for v, r in vr_maps]
 
-    bpy.ops.object.modifier_add(type='SKIN')
-
-    bmesh.update_edit_mesh(obj.data)
+    bmesh.update_edit_mesh(stem_obj.data)
     bpy.ops.object.mode_set(mode="OBJECT")
-    for i, r in index_radius_maps:
-        obj.data.skin_vertices[0].data[i].radius = (r, r)
 
+    bpy.context.view_layer.objects.active = stem_obj
+
+    bpy.ops.object.modifier_add(type='SKIN')
+    for i, r in index_radius_maps:
+        stem_obj.data.skin_vertices[0].data[i].radius = (r, r)
+
+    # add_leaves2(index_coordinates_map, stem_obj.matrix_world, leaf_mat, stem_obj)
     # Adding leaves
-    add_leaves(outer_coordinates, obj.matrix_world, leave_mat)
-    obj.data.materials.append(stem_mat)
+    # bm.verts.index_update()
+    add_leaves(outer_coordinates, stem_obj.matrix_world,
+               leaf_mat=leaf_mat, leaf_size=leaf_size,
+               leaf_size_deviation=leaf_size_deviation)
+
+    stem_obj.data.materials.append(stem_mat)
     # bpy.ops.object.mode_set(mode="EDIT")
 
 
@@ -157,8 +165,10 @@ def extrude(bm, root_vert, vertex_radius_maps, radius, depth=1, steps=0,
         #        depth=depth-1, translated_root=my_translated_root)
 
 
-def add_leaves(outer_coordinates, matrix, leave_mat):
-    for v in outer_coordinates:
+def add_leaves2(index_coordinates_map, matrix, leaf_mat, stem_obj):
+    # bpy.ops.object.mode_set(mode="OBJECT")
+    for v_index, v in index_coordinates_map:
+        # bpy.ops.object.select_all(action='DESELECT')
         my_co = matrix @ v
         bpy.ops.mesh.primitive_ico_sphere_add(
             radius=1, enter_editmode=False,
@@ -166,8 +176,27 @@ def add_leaves(outer_coordinates, matrix, leave_mat):
         )
         bpy.ops.transform.resize(
             value=(0.5, 0.5, 0.5))
+        leaf_obj = bpy.context.active_object
+        if leaf_mat:
+            leaf_obj.data.materials.append(leaf_mat)
+        e, _ = rand_rot(Vector((0.0, 0.0, 1.0)), random.uniform(0, 45))
+        leaf_obj.rotation_euler = e
+
+
+def add_leaves(outer_coordinates, matrix, leaf_mat=None, leaf_size=0.5,
+               leaf_size_deviation=20.0):
+    for v in outer_coordinates:
+        my_co = matrix @ v
+        bpy.ops.mesh.primitive_ico_sphere_add(
+            radius=1, enter_editmode=False,
+            location=my_co
+        )
+        deviation = leaf_size * (leaf_size_deviation / 100.0)
+        size = random.uniform(leaf_size - deviation, leaf_size + deviation)
+        bpy.ops.transform.resize(
+            value=(size, size, size))
         obj = bpy.context.active_object
-        if leave_mat:
-            obj.data.materials.append(leave_mat)
+        if leaf_mat:
+            obj.data.materials.append(leaf_mat)
         e, _ = rand_rot(Vector((0.0, 0.0, 1.0)), random.uniform(0, 45))
         obj.rotation_euler = e
