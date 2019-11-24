@@ -1,6 +1,6 @@
 # Blender low poly tree generator
 
-![Tree example image](doc/images/tree_example.png)
+![Tree example image](doc/images/tree_example_with_ui.png)
 
 Short description: TBD
 

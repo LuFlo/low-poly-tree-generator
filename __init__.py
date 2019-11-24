@@ -42,7 +42,7 @@ class PerformGeneration(bpy.types.Operator):
         try:
             util.generate_tree(context,
                                stem_mat=scene.lptg_stem_material,
-                               leaf_mat=scene.lptg_leaf_material,
+                               leaf_mat_prefix=scene.lptg_leaf_material,
                                initial_radius=scene.lptg_init_radius,
                                depth=scene.lptg_branch_depth,
                                leaf_size=scene.lptg_leaf_size,
@@ -67,15 +67,17 @@ class VIEW3D_PT_low_poly_tree(Panel):
     def draw(self, context):
         layout = self.layout
         layout.row().prop(context.scene, "lptg_branch_depth")
-
         layout.row().prop(context.scene, "lptg_init_radius")
+        layout.row().prop(context.scene, "lptg_radius_factor")
+        layout.row().prop(context.scene, "lptg_stem_section_length")
+        layout.row().prop(context.scene, "lptg_stem_length_factor")
 
         row = layout.row()
         row.column().label(text="Stem material")
         row.column().prop(context.scene, "lptg_stem_material")
 
         row = layout.row()
-        row.column().label(text="Leaf material")
+        row.column().label(text="Leaf material prefix")
         row.column().prop(context.scene, "lptg_leaf_material")
 
         row = layout.row()
@@ -99,13 +101,27 @@ def register():
     bpy.types.Scene.lptg_stem_material = PointerProperty(
         type=bpy.types.Material,
         name="", description="Stem Material")
-    bpy.types.Scene.lptg_leaf_material = PointerProperty(
-        type=bpy.types.Material,
-        name="", description="Leaf Material")
+    bpy.types.Scene.lptg_leaf_material = StringProperty(
+        default="leaf_",
+        name="", description="Every material which begins with this prefix will be "
+                             "considered as leaf material. The acutal material is "
+                             "chosen randomly for each leaf.")
     bpy.types.Scene.lptg_init_radius = FloatProperty(
         default=1.0, min=0.0, max=10.0,
         name="Root radius",
         description="Stem radius at the root of the tree")
+    bpy.types.Scene.lptg_radius_factor = FloatProperty(
+        default=0.8, min=0.05, max=1.0,
+        name="Radius factor",
+        description="Factor by which the stem radius gets smaller after each section")
+    bpy.types.Scene.lptg_stem_section_length = FloatProperty(
+        default=2.0, min=0.05, max=10.0,
+        name="Initial stem size",
+        description="Initial length of the first section of the stem")
+    bpy.types.Scene.lptg_stem_length_factor = FloatProperty(
+        default=0.9, min=0.05, max=1.0,
+        name="Stem length factor",
+        description="Factor by which the stem length gets smaller after each section")
     bpy.types.Scene.lptg_leaf_geometry = EnumProperty(
         items=[('mesh.primitive_cube_add', "Cube", "Cube mesh", 'CUBE', 0),
                ('mesh.primitive_ico_sphere_add', "Sphere", "Sphere mesh", 'MESH_ICOSPHERE', 1)],
