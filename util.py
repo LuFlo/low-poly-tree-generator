@@ -31,6 +31,7 @@ branch_prop_k = 0.8
 def generate_tree(context, stem_mat=None, leaf_mat_prefix=None,
                   initial_radius=1.0, radius_factor=0.8, depth=10,
                   leaf_size=0.5, leaf_size_deviation=20.0):
+    random.seed(context.scene.lptg_seed, version=2)
     if not context.mode == "OBJECT":
         bpy.ops.object.mode_set(mode="OBJECT")
     mesh = bpy.data.meshes.new("Stem")
@@ -74,13 +75,26 @@ def generate_tree(context, stem_mat=None, leaf_mat_prefix=None,
     # bm.verts.index_update()
     random.choices(bpy.data.materials)
     leaf_mats = [mat for mat in bpy.data.materials if mat.name.startswith(leaf_mat_prefix)]
-    add_leaves(outer_coordinates, stem_obj.matrix_world,
-               leaf_mats=leaf_mats, leaf_size=leaf_size,
-               leaf_size_deviation=leaf_size_deviation,
-               leaf_geometry=context.scene.lptg_leaf_geometry)
+    leaves = add_leaves(outer_coordinates, stem_obj.matrix_world,
+                        leaf_mats=leaf_mats, leaf_size=leaf_size,
+                        leaf_size_deviation=leaf_size_deviation,
+                        leaf_geometry=context.scene.lptg_leaf_geometry)
 
     stem_obj.data.materials.append(stem_mat)
-    # bpy.ops.object.mode_set(mode="EDIT")
+
+    scene_coll = bpy.context.scene.collection
+
+    coll_tree = bpy.data.collections.new("Tree")
+    coll_stem = bpy.data.collections.new("Stem")
+    coll_leaves = bpy.data.collections.new("Leaves")
+    coll_tree.children.link(coll_stem)
+    coll_tree.children.link(coll_leaves)
+    coll_stem.objects.link(stem_obj)
+    scene_coll.objects.unlink(stem_obj)
+    for leaf_obj in leaves:
+        coll_leaves.objects.link(leaf_obj)
+        scene_coll.objects.unlink(leaf_obj)
+    scene_coll.children.link(coll_tree)
 
 
 def angle_func(steps):
@@ -203,6 +217,7 @@ def add_leaves2(index_coordinates_map, matrix, leaf_mat, stem_obj):
 def add_leaves(outer_coordinates, matrix, leaf_mats=[], leaf_size=0.5,
                leaf_size_deviation=20.0,
                leaf_geometry='mesh.primitive_ico_sphere_add'):
+    leaf_objects = []
     for v in outer_coordinates:
         my_co = matrix @ v
         if leaf_geometry == 'mesh.primitive_ico_sphere_add':
@@ -219,8 +234,11 @@ def add_leaves(outer_coordinates, matrix, leaf_mats=[], leaf_size=0.5,
         size = random.uniform(leaf_size - deviation, leaf_size + deviation)
         bpy.ops.transform.resize(
             value=(size, size, size))
-        obj = bpy.context.active_object
+        leaf_obj = bpy.context.active_object
         if leaf_mats:
-            obj.data.materials.append(random.choice(leaf_mats))
+            leaf_obj.data.materials.append(random.choice(leaf_mats))
         e, _ = rand_rot(Vector((0.0, 0.0, 1.0)), random.uniform(0, 45))
-        obj.rotation_euler = e
+        leaf_obj.rotation_euler = e
+        leaf_obj.name = "Leaf"
+        leaf_objects.append(leaf_obj)
+    return leaf_objects

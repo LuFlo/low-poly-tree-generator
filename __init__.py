@@ -12,6 +12,8 @@ bl_info = {
 }
 
 import bpy
+import random
+import string
 from bpy.props import (
     IntProperty,
     FloatProperty,
@@ -52,6 +54,26 @@ class PerformGeneration(bpy.types.Operator):
         return {'FINISHED'}
 
 
+class NewSeed(bpy.types.Operator):
+    bl_idname = "object.new_seed"
+    bl_label = "New seed"
+    bl_space_type = 'VIEW_3D'
+    bl_region_type = 'UI'
+
+    @classmethod
+    def poll(cls, context):
+        return True
+
+    def execute(self, context):
+        scene = context.scene
+        try:
+            letter = string.ascii_letters
+            scene.lptg_seed = ''.join(random.choice(letter) for i in range(10))
+        except ValueError as e:
+            self.report({'ERROR'}, str(e))
+        return {'FINISHED'}
+
+
 class VIEW3D_PT_low_poly_tree(Panel):
 
     bl_category = "Low Poly Tree"
@@ -66,6 +88,14 @@ class VIEW3D_PT_low_poly_tree(Panel):
 
     def draw(self, context):
         layout = self.layout
+
+        row = layout.row()
+        row.operator("object.new_seed")
+
+        row = layout.row()
+        row.column().label(text="Seed")
+        row.column().prop(context.scene, "lptg_seed")
+
         layout.row().prop(context.scene, "lptg_branch_depth")
         layout.row().prop(context.scene, "lptg_init_radius")
         layout.row().prop(context.scene, "lptg_radius_factor")
@@ -94,7 +124,11 @@ class VIEW3D_PT_low_poly_tree(Panel):
 def register():
     bpy.utils.register_class(VIEW3D_PT_low_poly_tree)
     bpy.utils.register_class(PerformGeneration)
+    bpy.utils.register_class(NewSeed)
 
+    bpy.types.Scene.lptg_seed = StringProperty(
+        default="hYukTFphuI",
+        name="", description="Seed for the random number generator")
     bpy.types.Scene.lptg_branch_depth = IntProperty(
         name="Branch depth",
         default=10, min=1, max=20)
@@ -104,7 +138,7 @@ def register():
     bpy.types.Scene.lptg_leaf_material = StringProperty(
         default="leaf_",
         name="", description="Every material which begins with this prefix will be "
-                             "considered as leaf material. The acutal material is "
+                             "considered as leaf material. The individual material is "
                              "chosen randomly for each leaf.")
     bpy.types.Scene.lptg_init_radius = FloatProperty(
         default=1.0, min=0.0, max=10.0,
@@ -116,7 +150,7 @@ def register():
         description="Factor by which the stem radius gets smaller after each section")
     bpy.types.Scene.lptg_stem_section_length = FloatProperty(
         default=2.0, min=0.05, max=10.0,
-        name="Initial stem size",
+        name="Initial stem length",
         description="Initial length of the first section of the stem")
     bpy.types.Scene.lptg_stem_length_factor = FloatProperty(
         default=0.9, min=0.05, max=1.0,
@@ -142,3 +176,4 @@ def register():
 def unregister():
     bpy.utils.unregister_class(VIEW3D_PT_low_poly_tree)
     bpy.utils.unregister_class(PerformGeneration)
+    bpy.utils.unregister_class(NewSeed)
