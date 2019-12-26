@@ -90,10 +90,12 @@ def generate_tree(context, stem_mat=None, leaf_mat_prefix=None,
     coll_tree.children.link(coll_stem)
     coll_tree.children.link(coll_leaves)
     coll_stem.objects.link(stem_obj)
-    scene_coll.objects.unlink(stem_obj)
+    if stem_obj in scene_coll.objects.values():
+        scene_coll.objects.unlink(stem_obj)
     for leaf_obj in leaves:
         coll_leaves.objects.link(leaf_obj)
-        scene_coll.objects.unlink(leaf_obj)
+        if leaf_obj in scene_coll.objects.values():
+            scene_coll.objects.unlink(leaf_obj)
     scene_coll.children.link(coll_tree)
 
 
