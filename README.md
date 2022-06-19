@@ -28,6 +28,9 @@ modifier which you have to apply manually.
 ## Limitations
 
 Currently the leaf geometry is very limited. Only Ico-Spheres and Cubes are supported. Also
+there is currently a bug in Blender's skin modifier which is used by this plugin. This sometimes
+results in missing faces, see: https://github.com/LuFlo/low-poly-tree-generator/issues/1
+In that case, just "wiggle" the vertices of the stem around a bit until the faces appear :)
 
 ## Contribute and help
 
